@@ -27,6 +27,7 @@ class FinanceApp:
         root.geometry("960x600")
         root.minsize(800, 500)
         self.dirty = False
+        self.editing_index: int | None = None
         root.protocol("WM_DELETE_WINDOW", self.close)
         panel = ttk.Frame(root, padding=20)
         panel.pack(fill="both", expand=True)
@@ -69,7 +70,10 @@ class FinanceApp:
         ttk.Entry(form, textvariable=self.description).grid(
             row=3, column=0, columnspan=3, sticky="ew", padx=(0, 8),
         )
-        ttk.Button(form, text="Добавить", command=self.add).grid(
+        self.submit_button = ttk.Button(
+            form, text="Добавить", command=self.add,
+        )
+        self.submit_button.grid(
             row=3, column=3, sticky="ew",
         )
         table_frame = ttk.Frame(panel)
@@ -93,6 +97,8 @@ class FinanceApp:
         self.table.tag_configure("cancelled", foreground="#777777")
         actions = ttk.Frame(panel)
         actions.pack(fill="x")
+        ttk.Button(actions, text="Редактировать выбранную",
+               command=self.edit).pack(side="left")
         ttk.Button(actions, text="Отменить выбранную",
                    command=self.cancel).pack(side="left")
         ttk.Button(actions, text="Сохранить",
@@ -125,7 +131,11 @@ class FinanceApp:
             category = find_category(self.categories, name) or Category(name)
             amount = float(self.amount.get().strip().replace(",", "."))
             day = datetime.strptime(self.day.get().strip(), "%Y-%m-%d")
-            identifier = max((t.id for t in self.transactions), default=0) + 1
+            identifier = (
+                self.transactions[self.editing_index].id
+                if self.editing_index is not None
+                else max((t.id for t in self.transactions), default=0) + 1
+            )
             item = Transaction(
                 identifier, amount, category, day.date().isoformat(),
                 self.description.get().strip(),
@@ -140,12 +150,36 @@ class FinanceApp:
             return
         if category not in self.categories:
             self.categories.append(category)
-        self.transactions.append(item)
+        if self.editing_index is None:
+            self.transactions.append(item)
+        else:
+            item.is_cancelled = self.transactions[
+                self.editing_index
+            ].is_cancelled
+            self.transactions[self.editing_index] = item
+            self.editing_index = None
+            self.submit_button.configure(text="Добавить")
         self.dirty = True
         self.refresh()
         self.save()
         self.amount.set("")
         self.description.set("")
+
+    def edit(self) -> None:
+        """Загрузить выбранную операцию в форму для редактирования."""
+        selection = self.table.selection()
+        if not selection:
+            self.status.set("Выберите операцию в таблице")
+            return
+        self.editing_index = int(selection[0])
+        item = self.transactions[self.editing_index]
+        self.kind.set("Доход" if item.type == "income" else "Расход")
+        self.category.set(item.category.name)
+        self.amount.set(str(item.amount))
+        self.day.set(item.date)
+        self.description.set(item.description)
+        self.submit_button.configure(text="Сохранить изменения")
+        self.status.set(f"Редактирование операции #{item.id}")
 
     def cancel(self) -> None:
         """Отменить выбранную операцию без удаления из истории."""
