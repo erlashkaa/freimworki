@@ -1,5 +1,6 @@
 """Модель категории и функции работы со списком категорий."""
 
+from math import isfinite
 from typing import Any
 
 
@@ -13,8 +14,21 @@ class Category:
             name: Название категории.
             limit: Лимит расходов или None, если лимит не задан.
         """
+        self.validate_limit(limit)
+        if not name.strip():
+            raise ValueError("Название категории не должно быть пустым")
         self.name = name
         self.limit = limit
+
+    @staticmethod
+    def validate_limit(limit: float | None) -> None:
+        """Проверить неотрицательный конечный лимит."""
+        if limit is not None and (not isfinite(limit) or limit < 0):
+            raise ValueError("Лимит должен быть конечным и неотрицательным")
+
+    def allows(self, spent: float, amount: float) -> bool:
+        """Проверить покупку с учётом уже потраченной суммы."""
+        return self.limit is None or spent + amount <= self.limit
 
     def __str__(self) -> str:
         """Вернуть название категории и её лимит, если он задан."""
@@ -79,6 +93,7 @@ def add_category(
     Returns:
         Добавленный или обновлённый объект категории.
     """
+    Category.validate_limit(limit)
     existing_category = find_category(categories, name)
     if existing_category is not None:
         existing_category.limit = limit

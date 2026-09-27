@@ -1,6 +1,7 @@
 """Функции безопасного ввода данных из консоли."""
 
 from datetime import datetime
+from math import isfinite
 
 
 def input_float(prompt: str) -> float:
@@ -15,7 +16,10 @@ def input_float(prompt: str) -> float:
     while True:
         user_input = input(prompt).strip().replace(",", ".")
         try:
-            return float(user_input)
+            value = float(user_input)
+            if not isfinite(value):
+                raise ValueError("Введите конечное число")
+            return value
         except ValueError:
             print("Некорректное число. Попробуйте ещё раз.")
 
@@ -36,3 +40,12 @@ def input_date(prompt: str) -> str:
             return parsed_date.date().isoformat()
         except ValueError:
             print("Некорректная дата. Используйте формат YYYY-MM-DD.")
+
+
+def input_int(prompt: str) -> int:
+    """Повторять ввод целого числа при ValueError."""
+    while True:
+        try:
+            return int(input(prompt).strip())
+        except ValueError:
+            print("Введите целое число.")

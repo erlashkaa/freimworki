@@ -1,5 +1,6 @@
 """Интерактивное консольное приложение FinanceTracker."""
 
+from datetime import date
 from pathlib import Path
 
 from models import Category, Transaction
@@ -23,7 +24,7 @@ from storage import (
     save_categories,
     save_transactions,
 )
-from utils import input_date, input_float
+from utils import input_date, input_float, input_int
 
 INITIAL_BALANCE = 0.0
 DATA_DIRECTORY = Path(__file__).parent / "data"
@@ -51,7 +52,9 @@ def _display_summary(
         category_expenses = sum(
             transaction.amount
             for transaction in transactions
-            if transaction.type == "expense"
+            if not transaction.is_cancelled
+            and transaction.type == "expense"
+            and transaction.date.startswith(date.today().strftime("%Y-%m"))
             and transaction.category.name == category.name
         )
         limit_text = (
@@ -136,6 +139,9 @@ def _check_category_limit(
         return
 
     new_amount = input_float("Сумма покупки: ")
+    while new_amount <= 0:
+        print("Сумма должна быть больше нуля.")
+        new_amount = input_float("Сумма покупки: ")
     is_allowed = check_expense_limit(
         transactions,
         category_name,
@@ -187,6 +193,7 @@ def main() -> None:
         print("3. Проверить лимит категории перед покупкой")
         print("4. Показать историю транзакций")
         print("5. Сохранить изменения и выйти")
+        print("6. Отменить транзакцию")
         menu_choice = input("Выберите пункт меню: ").strip()
 
         if menu_choice == "1":
@@ -202,8 +209,19 @@ def main() -> None:
             save_categories(CATEGORIES_FILE, categories)
             print("Данные сохранены. До встречи!")
             break
+        elif menu_choice == "6":
+            identifier = input_int("ID операции: ")
+            transaction = next(
+                (item for item in transactions if item.id == identifier),
+                None,
+            )
+            if transaction is None:
+                print("Операция не найдена.")
+            else:
+                transaction.cancel()
+                print("Операция отменена.")
         else:
-            print("Выберите пункт меню от 1 до 5.")
+            print("Выберите пункт меню от 1 до 6.")
 
 
 if __name__ == "__main__":
