@@ -98,7 +98,7 @@ class FinanceApp:
         actions = ttk.Frame(panel)
         actions.pack(fill="x")
         ttk.Button(actions, text="Редактировать выбранную",
-               command=self.edit).pack(side="left")
+                   command=self.edit).pack(side="left")
         ttk.Button(actions, text="Отменить выбранную",
                    command=self.cancel).pack(side="left")
         ttk.Button(actions, text="Сохранить",
