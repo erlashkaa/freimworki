@@ -1,0 +1,65 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>FinanceTracker — личные финансы</title>
+  <link rel="stylesheet" href="{% static 'finance/app.css' %}">
+  <script src="{% static 'finance/app.js' %}" defer></script>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="/">Finance<span>Tracker</span></a>
+    <div id="account" hidden><span id="username"></span><button id="logout" class="secondary">Выйти</button></div>
+  </header>
+  <main>
+    <div id="notice" role="status" aria-live="polite"></div>
+    <section id="auth" class="auth-layout">
+      <div class="intro"><p class="eyebrow">ЛИЧНЫЙ ФИНАНСОВЫЙ ДНЕВНИК</p><h1>Ваши деньги.<br>Всё под контролем.</h1><p>Записывайте доходы и расходы, следите за лимитами и возвращайтесь к истории в любой момент.</p><div class="intro-note">Отдельный аккаунт — отдельная история операций.</div></div>
+      <form id="auth-form" class="card">
+        <h2 id="auth-title">Вход в аккаунт</h2>
+        <label>Имя пользователя<input name="username" required maxlength="150" autocomplete="username"></label>
+        <label>Пароль<input name="password" type="password" required maxlength="1024" autocomplete="current-password"></label>
+        <label id="repeat-label" hidden>Повторите пароль<input name="repeat" type="password" maxlength="1024" autocomplete="new-password"></label>
+        <p id="password-hint" class="muted" hidden>Не менее 10 символов. Пароль не должен быть распространённым, состоять только из цифр или быть похожим на логин.</p>
+        <button id="auth-submit" type="submit">Войти</button>
+        <button id="auth-toggle" class="link" type="button">Создать аккаунт</button>
+      </form>
+    </section>
+    <section id="dashboard" hidden>
+      <div class="heading"><div><p class="eyebrow">ОБЗОР ФИНАНСОВ</p><h1>Личный кабинет</h1></div><label>Отчётный месяц<input id="month" type="month" required></label></div>
+      <div class="stats">
+        <article class="card balance"><span>Общий баланс · за всё время</span><strong id="balance">—</strong></article>
+        <article class="card"><span>Доходы за месяц</span><strong id="income">—</strong></article>
+        <article class="card"><span>Расходы за месяц</span><strong id="expense">—</strong></article>
+      </div>
+      <div class="forms-grid">
+        <form id="transaction-form" class="card">
+          <h2>Новая операция</h2>
+          <div class="fields"><label>Тип<select name="type"><option value="expense">Расход</option><option value="income">Доход</option></select></label><label>Сумма, ₽<input name="amount" type="number" min="0.01" max="9999999999.99" step="0.01" required placeholder="0,00"></label><label>Категория<select name="category" id="category-select" required></select></label><label>Дата<input name="date" type="date" required></label></div>
+          <label>Описание<input name="description" maxlength="300" placeholder="Например, продукты на неделю"></label>
+          <p id="category-hint" class="muted">Сначала добавьте категорию в соседней форме.</p>
+          <button id="add-transaction" type="submit">Добавить операцию</button>
+        </form>
+        <form id="category-form" class="card">
+          <h2 id="category-title">Новая категория</h2>
+          <input name="id" type="hidden">
+          <label>Название<input name="name" maxlength="80" required placeholder="Продукты, зарплата, транспорт…"></label>
+          <label>Месячный лимит, ₽<input name="limit" type="number" min="0" max="9999999999.99" step="0.01" placeholder="Без лимита"></label>
+          <p class="muted">Лимит помогает отслеживать расходы. Превышение отображается в сводке и не запрещает запись покупки.</p>
+          <div class="row"><button type="submit">Сохранить категорию</button><button id="category-reset" class="secondary" type="button" hidden>Сбросить</button></div>
+        </form>
+      </div>
+      <section class="card limits"><h2>Категории и лимиты</h2><p class="muted">Расходы за выбранный месяц. Отменённые операции не учитываются.</p><div id="limits"></div></section>
+      <section class="card history">
+        <div class="heading"><h2>История за месяц</h2><div class="row"><label>Категория<select id="filter"><option value="">Все категории</option></select></label><label>Сортировка<select id="ordering"><option value="-date">Сначала новые</option><option value="date">Сначала старые</option><option value="-amount">Сумма по убыванию</option><option value="amount">Сумма по возрастанию</option></select></label></div></div>
+        <div class="table-wrap"><table><thead><tr><th>Дата</th><th>Категория</th><th>Описание</th><th>Сумма</th><th>Статус</th><th><span class="sr-only">Действие</span></th></tr></thead><tbody id="transactions"></tbody></table></div>
+        <p id="empty" class="empty" hidden>Операций за этот месяц пока нет. Добавьте первую выше.</p>
+        <div class="pagination"><button id="previous" class="secondary">Назад</button><span id="page-label"></span><button id="next" class="secondary">Далее</button></div>
+      </section>
+    </section>
+  </main>
+  <footer>FinanceTracker · Учёт личных доходов и расходов</footer>
+</body>
+</html>

@@ -1,5 +1,43 @@
 # FinanceTracker
 
+## Веб-версия ПР5 и ПР6
+
+Django-приложение с REST API и интерфейсом в браузере: аккаунты, личные
+категории, месячные лимиты, доходы и расходы, отмена операций и история.
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe manage.py migrate
+.\.venv\Scripts\python.exe manage.py collectstatic --noinput
+.\.venv\Scripts\python.exe serve.py
+```
+
+Откройте http://127.0.0.1:8765 и создайте аккаунт. Если окружение уже есть,
+первую команду можно пропустить. Следующий запуск: только `serve.py`.
+Остановка сервера: Ctrl+C. Пакеты рассчитаны на Python 3.10+.
+
+Веб-версия использует отдельную SQLite-базу в `.local/`. Старые JSON-файлы
+используются консольной и оконной версиями. Импорт в пустой веб-аккаунт:
+`python manage.py import_json ИМЯ_АККАУНТА --directory data`.
+
+Основные новые файлы:
+
+- `webconfig/` — настройки Django, URL и WSGI.
+- `finance/models.py`, `finance/migrations/` — таблицы и миграции.
+- `finance/views.py`, `finance/forms.py` — API и проверка запросов.
+- `finance/services.py` — сводка и версионирование кэша.
+- `finance/templates/finance/index.html` — страница приложения.
+- `finance/static/finance/` — CSS и JavaScript с fetch.
+- `tests/test_web.py`, `tests/test_import_json.py` — проверки веб-версии.
+- `scripts/load_test.py` — нагрузочная проверка через HTTP.
+- `serve.py` — локальное развёртывание через Waitress.
+
+Документация: [API](docs/API.md), [запуск и развёртывание](docs/DEPLOYMENT.md),
+[план](docs/PLAN_PR5_PR6.md), [проверки и защита работы](docs/PR5_PR6.md).
+
+## Консольная и оконная версии ПР1–3
+
 Консольное приложение для учёта личных доходов и расходов на Python 3.10+.
 В ПР3 функциональная модель ПР2 заменена объектной моделью без изменения
 пользовательского сценария.

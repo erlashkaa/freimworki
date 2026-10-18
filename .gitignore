@@ -17,3 +17,6 @@ dist/
 *.egg-info/
 .pytest_cache/
 .test-tmp*/
+.local/
+*.sqlite3
+*.sqlite3-*
