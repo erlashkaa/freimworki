@@ -1,0 +1,31 @@
+{% extends "finance/base.html" %}
+{% block title %}Операции · FinanceTracker{% endblock %}
+{% block content %}
+  <div class="heading"><div><p class="eyebrow">ПР9–11</p><h1>Операции</h1></div><a class="button" href="{% url 'finance:transaction-create' %}">Новая операция</a></div>
+  <form method="get" class="card filter-form">
+    {{ form.as_div }}
+    <button type="submit">Применить</button>
+    <a href="{% url 'finance:transaction-list' %}">Сбросить</a>
+  </form>
+  <section class="card history">
+    <div class="table-wrap"><table>
+      <thead><tr><th>Дата</th><th>Категория</th><th>Описание</th><th>Тип</th><th>Сумма</th><th>Действия</th></tr></thead>
+      <tbody>
+      {% for item in page_object %}
+        <tr{% if item.is_cancelled %} class="cancelled"{% endif %}>
+          <td>{{ item.date|date:"d.m.Y" }}</td>
+          <td><a href="{{ item.category.get_absolute_url }}">{{ item.category.name }}</a></td>
+          <td>{{ item.description|default:"—" }}</td>
+          <td>{{ item.get_type_display }}</td><td>{{ item.amount }} ₽</td>
+          <td class="row"><a href="{{ item.get_absolute_url }}">Изменить</a>{% if not item.is_cancelled %}<form method="post" action="{% url 'finance:transaction-cancel' item.pk %}">{% csrf_token %}<button class="secondary" type="submit">Отменить</button></form>{% endif %}</td>
+        </tr>
+      {% empty %}<tr><td colspan="6">Операции не найдены.</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    <div class="pagination">
+      {% if page_object.has_previous %}<a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_object.previous_page_number }}">Назад</a>{% endif %}
+      <span>Страница {{ page_object.number }} из {{ page_object.paginator.num_pages }}</span>
+      {% if page_object.has_next %}<a href="?{% if query_string %}{{ query_string }}&{% endif %}page={{ page_object.next_page_number }}">Далее</a>{% endif %}
+    </div>
+  </section>
+{% endblock %}

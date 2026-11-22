@@ -1,0 +1,11 @@
+{% extends "finance/base.html" %}
+{% block title %}{{ category.name }} · FinanceTracker{% endblock %}
+{% block content %}
+  <p class="eyebrow">КАТЕГОРИЯ</p><h1>{{ category.name }}</h1>
+  <div class="stats">
+    <article class="card"><span>Активных операций</span><strong>{{ totals.count }}</strong></article>
+    <article class="card"><span>Доходы</span><strong>{{ totals.income|default:0 }} ₽</strong></article>
+    <article class="card"><span>Расходы</span><strong>{{ totals.expense|default:0 }} ₽</strong></article>
+  </div>
+  <section class="card"><h2>Последние операции</h2><ul>{% for item in recent %}<li>{{ item.date|date:"d.m.Y" }} — {{ item.description|default:item.get_type_display }}: {{ item.amount }} ₽{% empty %}<li>Операций пока нет.{% endfor %}</ul></section>
+{% endblock %}

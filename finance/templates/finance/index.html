@@ -11,7 +11,7 @@
 <body>
   <header class="topbar">
     <a class="brand" href="/">Finance<span>Tracker</span></a>
-    <div id="account" hidden><span id="username"></span><button id="logout" class="secondary">Выйти</button></div>
+    <div id="account" hidden><a href="{% url 'finance:transaction-list' %}">Формы ПР11</a><span id="username"></span><button id="logout" class="secondary">Выйти</button></div>
   </header>
   <main>
     <div id="notice" role="status" aria-live="polite"></div>

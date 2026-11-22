@@ -26,7 +26,8 @@ ALLOWED_HOSTS = os.environ.get(
     "DJANGO_ALLOWED_HOSTS", "localhost,127.0.0.1,[::1]",
 ).split(",")
 INSTALLED_APPS = [
-    "django.contrib.auth", "django.contrib.contenttypes",
+    "django.contrib.admin", "django.contrib.auth",
+    "django.contrib.contenttypes", "django.contrib.messages",
     "django.contrib.sessions", "django.contrib.staticfiles", "finance",
 ]
 MIDDLEWARE = [
@@ -36,6 +37,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "finance.middleware.ResponseHeadersMiddleware",
 ]
@@ -47,6 +49,8 @@ TEMPLATES = [{
     "OPTIONS": {"context_processors": [
         "django.template.context_processors.request",
         "django.contrib.auth.context_processors.auth",
+        "django.contrib.messages.context_processors.messages",
+        "finance.context_processors.finance_navigation",
     ]},
 }]
 DATABASES = {"default": {
@@ -73,6 +77,7 @@ TIME_ZONE = "Europe/Moscow"
 USE_I18N = True
 USE_TZ = True
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+LOGIN_URL = "/"
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "build" / "static"
 STORAGES = {
@@ -84,6 +89,7 @@ STORAGES = {
     )},
 }
 WHITENOISE_USE_FINDERS = not PRODUCTION
+WHITENOISE_AUTOREFRESH = not PRODUCTION
 CSRF_FAILURE_VIEW = "finance.views.csrf_failure"
 CSRF_TRUSTED_ORIGINS = [
     x for x in os.environ.get(
@@ -101,3 +107,8 @@ SECURE_HSTS_PRELOAD = PRODUCTION
 SECURE_CONTENT_TYPE_NOSNIFF = True
 SECURE_REFERRER_POLICY = "same-origin"
 DATA_UPLOAD_MAX_MEMORY_SIZE = 16384
+
+if DEBUG:
+    INSTALLED_APPS.append("debug_toolbar")
+    MIDDLEWARE.insert(2, "debug_toolbar.middleware.DebugToolbarMiddleware")
+    INTERNAL_IPS = ["127.0.0.1"]

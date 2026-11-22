@@ -1,5 +1,45 @@
 # FinanceTracker
 
+## ПР9–11: ORM, Django Admin и Forms
+
+Веб-версия продолжена без создания нового проекта:
+
+- ПР9: модели `Category`, `Transaction`, `LedgerState`, связи, миграции,
+  пользовательский `TransactionQuerySet`, поиск, фильтрация, агрегаты,
+  аннотации и `Paginator`;
+- ПР10: административная панель `/admin/`, поиск и фильтры, связанные
+  операции, массовая отмена, URL категорий и вычисляемое поле
+  `Transaction.signed_amount`;
+- ПР11: `TransactionFilterForm`, `TransactionModelForm`, HTML-страницы
+  списка, создания, редактирования и отмены операций с серверной валидацией
+  и CSRF-защитой.
+
+После входа дополнительные страницы доступны по адресам:
+
+```text
+/operations/
+/operations/new/
+/categories/<slug>/
+/admin/
+```
+
+Для входа в административную панель создайте локального администратора:
+
+```powershell
+.\.venv\Scripts\python.exe manage.py createsuperuser
+```
+
+Для анализа SQL-запросов через Django Debug Toolbar запустите локально:
+
+```powershell
+$env:DJANGO_DEBUG="1"
+.\.venv\Scripts\python.exe serve.py
+```
+
+Основные файлы ПР9–11: `finance/models.py`, `finance/selectors.py`,
+`finance/admin.py`, `finance/forms.py`, `finance/views.py`,
+`finance/templates/finance/` и `tests/test_pr9_pr11.py`.
+
 ## Веб-версия ПР5 и ПР6
 
 Django-приложение с REST API и интерфейсом в браузере: аккаунты, личные

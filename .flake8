@@ -1,2 +1,2 @@
 [flake8]
-exclude = .venv,venv,build,dist,__pycache__,.pytest_cache
+exclude = .venv,venv,build,dist,__pycache__,.pytest_cache,work,tmp,output,devops-course-2026,devops-kr2

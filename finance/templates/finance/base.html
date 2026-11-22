@@ -1,0 +1,25 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}FinanceTracker{% endblock %}</title>
+  <link rel="stylesheet" href="{% static 'finance/app.css' %}">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="{% url 'finance:home' %}">Finance<span>Tracker</span></a>
+    <nav class="row">
+      <a href="{% url 'finance:transaction-list' %}">Операции</a>
+      <a href="{% url 'finance:transaction-create' %}">Добавить</a>
+      <span>{{ request.user.username }} · категорий: {{ finance_category_count }}</span>
+    </nav>
+  </header>
+  <main>
+    {% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+  <footer>FinanceTracker · Django ORM и Forms</footer>
+</body>
+</html>

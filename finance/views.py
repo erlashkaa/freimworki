@@ -4,17 +4,25 @@ from datetime import datetime
 from functools import wraps
 
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.decorators import login_required
+from django.contrib import messages
 from django.core.cache import cache
+from django.core.paginator import EmptyPage, PageNotAnInteger, Paginator
 from django.db import IntegrityError, transaction
+from django.db.models import Count, Q, Sum
 from django.http import JsonResponse
 from django.middleware.csrf import get_token
-from django.shortcuts import render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_GET
+from django.views.decorators.http import require_GET, require_POST
 
-from .forms import CategoryForm, RegisterForm, TransactionForm
+from .forms import (
+    CategoryForm, RegisterForm, TransactionFilterForm, TransactionForm,
+    TransactionModelForm,
+)
 from .models import Category, Transaction
+from .selectors import transaction_queryset
 from .services import money, summary, touch_ledger
 
 
@@ -208,15 +216,27 @@ def transactions(request):
         except ValueError:
             return error("Месяц должен иметь формат YYYY-MM")
         items = items.filter(date__year=day.year, date__month=day.month)
+    query = request.GET.get("query", "").strip()
+    if len(query) > 100:
+        return error("Поисковый запрос слишком длинный")
+    if query:
+        items = items.filter(
+            Q(description__icontains=query)
+            | Q(category__name__icontains=query)
+        )
     ordering = request.GET.get("ordering", "-date")
     if ordering not in ("date", "-date", "amount", "-amount"):
         return error("Недопустимый порядок сортировки")
     items = items.order_by(ordering, "-id")
-    count = items.count()
-    start = (page - 1) * 20
+    paginator = Paginator(items, 20)
+    try:
+        page_object = paginator.page(page)
+    except (EmptyPage, PageNotAnInteger):
+        return error("Некорректный номер страницы")
     return JsonResponse({
-        "results": [transaction_data(t) for t in items[start:start + 20]],
-        "count": count, "page": page, "page_size": 20,
+        "results": [transaction_data(t) for t in page_object.object_list],
+        "count": paginator.count, "page": page_object.number,
+        "page_size": paginator.per_page,
     })
 
 
@@ -245,8 +265,118 @@ def overview(request):
     return JsonResponse(summary(request.user, month))
 
 
+@login_required
+@require_GET
+def transaction_list(request):
+    form = TransactionFilterForm(request.GET or None, user=request.user)
+    items = Transaction.objects.none()
+    if form.is_valid():
+        items = transaction_queryset(request.user, form.cleaned_data)
+    paginator = Paginator(items, 10)
+    page_object = paginator.get_page(request.GET.get("page", 1))
+    query_params = request.GET.copy()
+    query_params.pop("page", None)
+    return render(request, "finance/transaction_list.html", {
+        "form": form,
+        "page_object": page_object,
+        "query_string": query_params.urlencode(),
+    })
+
+
+@login_required
+def transaction_create(request):
+    form = TransactionModelForm(
+        request.POST or None, user=request.user,
+    )
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            form.save()
+            touch_ledger(request.user)
+        messages.success(request, "Операция создана.")
+        return redirect("finance:transaction-list")
+    return render(request, "finance/transaction_form.html", {
+        "form": form, "title": "Новая операция",
+    })
+
+
+@login_required
+def transaction_edit(request, pk: int):
+    item = get_object_or_404(
+        Transaction.objects.owned_by(request.user).select_related("category"),
+        pk=pk,
+    )
+    form = TransactionModelForm(
+        request.POST or None, user=request.user, instance=item,
+    )
+    if request.method == "POST" and form.is_valid():
+        with transaction.atomic():
+            form.save()
+            touch_ledger(request.user)
+        messages.success(request, "Операция изменена.")
+        return redirect("finance:transaction-list")
+    return render(request, "finance/transaction_form.html", {
+        "form": form, "title": "Редактирование операции", "item": item,
+    })
+
+
+@login_required
+@require_POST
+def transaction_cancel_form(request, pk: int):
+    item = get_object_or_404(
+        Transaction.objects.owned_by(request.user), pk=pk,
+    )
+    if not item.is_cancelled:
+        item.is_cancelled = True
+        item.save(update_fields=["is_cancelled"])
+        touch_ledger(request.user)
+    messages.success(request, "Операция отменена.")
+    return redirect("finance:transaction-list")
+
+
+@login_required
+@require_GET
+def category_detail_page(request, slug: str):
+    category = get_object_or_404(
+        Category, owner=request.user, slug=slug,
+    )
+    totals = category.transactions.active().aggregate(
+        count=Count("id"),
+        income=Sum("amount", filter=Q(type="income")),
+        expense=Sum("amount", filter=Q(type="expense")),
+    )
+    recent = category.transactions.select_related("category").order_by(
+        "-date", "-id",
+    )[:10]
+    return render(request, "finance/category_detail.html", {
+        "category": category, "totals": totals, "recent": recent,
+    })
+
+
 def csrf_failure(request, reason=""):
-    return error("Проверка CSRF не пройдена. Обновите страницу", 403)
+    detail = "token_invalid"
+    message = "Токен страницы устарел. Обновите страницу через Ctrl+F5."
+    if reason == "CSRF cookie not set.":
+        detail = "cookie_missing"
+        message = (
+            "Браузер не отправил CSRF-cookie. Разрешите cookies для этого "
+            "сайта и обновите страницу."
+        )
+    elif reason == "CSRF token missing.":
+        detail = "token_missing"
+        message = (
+            "Форма не отправила CSRF-токен. Обновите страницу через Ctrl+F5."
+        )
+    elif reason.startswith((
+        "Origin checking failed", "Referer checking failed",
+    )):
+        detail = "origin_mismatch"
+        message = (
+            "Адрес страницы не прошёл проверку безопасности. "
+            "Откройте сайт по адресу, указанному при запуске сервера."
+        )
+    return error(
+        message, 403, code="csrf_failed", detail=detail,
+    )
 
 
 @require_GET

@@ -12,14 +12,26 @@ function notify(message, failure = false) {
   $("#notice").classList.toggle("error", failure);
 }
 
-async function api(path, method = "GET", data) {
-  const options = {method, credentials: "same-origin", headers: {"X-CSRFToken": state.csrf}};
+function currentCsrf() {
+  const cookie = document.cookie.split(";").map((part) => part.trim()).find((part) => part.startsWith("csrftoken="));
+  return cookie ? decodeURIComponent(cookie.slice("csrftoken=".length)) : state.csrf;
+}
+
+async function api(path, method = "GET", data, retry = true) {
+  const writing = !["GET", "HEAD", "OPTIONS"].includes(method);
+  if (writing && !currentCsrf()) await api("session/");
+  const options = {method, credentials: "same-origin", cache: "no-store", headers: {}};
+  if (writing) options.headers["X-CSRFToken"] = currentCsrf();
   if (data !== undefined) {
     options.headers["Content-Type"] = "application/json";
     options.body = JSON.stringify(data);
   }
   const response = await fetch(`/api/${path}`, options);
   const body = await response.json().catch(() => ({error: "Сервер вернул некорректный ответ"}));
+  if (response.status === 403 && body.code === "csrf_failed" && retry && ["login/", "register/"].includes(path)) {
+    await api("session/");
+    return api(path, method, data, false);
+  }
   if (!response.ok) {
     if (response.status === 401 && !path.startsWith("login")) showUser(null);
     const fields = Object.values(body.fields || {}).flat().join(" ");
